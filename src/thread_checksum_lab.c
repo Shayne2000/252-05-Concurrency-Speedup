@@ -81,6 +81,12 @@ int run_multi(WorkerArgs *args, int thread_count, uint64_t *sum, uint32_t *x, ui
     }
 
     /* TODO: create one thread per chunk and join all threads. */
+    for (int i = 0 ; i < thread_count ; i ++) {
+        if (pthread_create(threads[i], NULL, print_message, (void *)msg1) != 0){
+            return -1;
+        }
+        
+    }
     free(threads);
     return -1;
 }
