@@ -50,13 +50,19 @@ void *worker_run(void *arg) {
 
     /* TODO: compute partial_sum, partial_xor, partial_max for range [start, end). */
     for (int i = (int)w->start ; i < (int)w->end ; i++) {
-        value_for_index(i,w->rounds,w->seed);
+        uint32_t value = value_for_index(i,w->rounds,w->seed);
+
+        w->partial_sum += value;
+        w->partial_xor ^= value;
+        if (value > w->partial_max) {
+            w->partial_max = value;
+        }
     }
     (void)w;
 
     // fprintf(stderr,"test\n");
 
-    return NULL;
+    return 0;
 }
 
 int run_single(WorkerArgs *args, uint64_t *sum, uint32_t *x, uint32_t *maxv) {
@@ -87,17 +93,28 @@ int run_multi(WorkerArgs *args, int thread_count, uint64_t *sum, uint32_t *x, ui
 
     /* TODO: create one thread per chunk and join all threads. */
     for (int i = 0 ; i < thread_count ; i ++) {
-        if (pthread_create(threads+i, NULL, *worker_run, (void *)threads+i) != 0){
+        // fprintf(stderr,"thread %d: start=%zu end=%zu rounds=%d seed=%" PRIu32 "\n",
+        //         i, args[i].start, args[i].end, args[i].rounds, args[i].seed);
+        if (pthread_create(&threads[i], NULL, worker_run, (void *)&args[i]) != 0){
+            // fprintf(stderr,"pthread_create failed for thread %d: %s\n", i, strerror(errno));
             return -1;
         }
     }
 
+    for (int i = 0; i < thread_count; i++) {
+        pthread_join(threads[i], NULL);
+    }
+
     for (int i = 0 ; i < thread_count ; i ++) {
-        fprintf(stderr,"seed : %d\n",(int)args[i].partial_sum);
+        *sum += args[i].partial_sum;
+        *x ^= args[i].partial_xor;
+        if (args[i].partial_max > *maxv) {
+            *maxv = args[i].partial_max;
+        }
     }
 
     free(threads);
-    return -1;
+    return 0;
 }
 
 int main(int argc, char **argv) {
