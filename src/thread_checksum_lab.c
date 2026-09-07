@@ -49,7 +49,12 @@ void *worker_run(void *arg) {
     WorkerArgs *w = (WorkerArgs *)arg;
 
     /* TODO: compute partial_sum, partial_xor, partial_max for range [start, end). */
+    for (int i = (int)w->start ; i < (int)w->end ; i++) {
+        value_for_index(i,w->rounds,w->seed);
+    }
     (void)w;
+
+    // fprintf(stderr,"test\n");
 
     return NULL;
 }
@@ -82,11 +87,15 @@ int run_multi(WorkerArgs *args, int thread_count, uint64_t *sum, uint32_t *x, ui
 
     /* TODO: create one thread per chunk and join all threads. */
     for (int i = 0 ; i < thread_count ; i ++) {
-        if (pthread_create(threads[i], NULL, print_message, (void *)msg1) != 0){
+        if (pthread_create(threads+i, NULL, *worker_run, (void *)threads+i) != 0){
             return -1;
         }
-        
     }
+
+    for (int i = 0 ; i < thread_count ; i ++) {
+        fprintf(stderr,"seed : %d\n",(int)args[i].partial_sum);
+    }
+
     free(threads);
     return -1;
 }
